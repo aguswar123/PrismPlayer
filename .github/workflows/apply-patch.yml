@@ -1,0 +1,42 @@
+name: Apply patch
+
+on:
+  workflow_dispatch:
+    inputs:
+      patch_file:
+        description: "Patch file name in the repo root"
+        required: true
+        default: "player-style.patch"
+      commit_message:
+        description: "Commit message"
+        required: true
+        default: "Add Modern player style with drag-and-drop layout editor"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check patch
+        run: git apply --check "${{ inputs.patch_file }}"
+
+      - name: Apply patch
+        run: git apply "${{ inputs.patch_file }}"
+
+      - name: Delete patch file
+        run: rm -f "${{ inputs.patch_file }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "${{ inputs.commit_message }}"
+          git push
