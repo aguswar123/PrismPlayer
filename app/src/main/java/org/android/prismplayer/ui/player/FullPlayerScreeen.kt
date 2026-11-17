@@ -55,6 +55,8 @@ import org.android.prismplayer.data.model.QueueItem
 import org.android.prismplayer.data.model.Song
 import org.android.prismplayer.ui.components.Slider
 import org.android.prismplayer.ui.components.SongOptionSheet
+import org.android.prismplayer.ui.utils.PlayerStyle
+import org.android.prismplayer.ui.utils.PlayerStylePreferences
 import org.android.prismplayer.ui.utils.PrismaColorUtils
 import org.android.prismplayer.ui.utils.rememberDominantColor
 
@@ -202,6 +204,10 @@ fun FullPlayerContent(
 
     val glowColor = remember(rawColor) { PrismaColorUtils.adjustForAccent(rawColor) }
 
+    val stylePrefs = remember { PlayerStylePreferences.get(context) }
+    val layoutConfig by stylePrefs.config.collectAsState()
+    var showCustomize by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -236,7 +242,35 @@ fun FullPlayerContent(
                 )
         )
 
-        Column(
+        if (layoutConfig.style == PlayerStyle.MODERN) {
+            ModernPlayerContent(
+                config = layoutConfig,
+                song = song,
+                bitmap = bitmap,
+                glowColor = glowColor,
+                isPlaying = isPlaying,
+                progress = progress,
+                currentTime = currentTime,
+                totalTime = totalTime,
+                repeatMode = repeatMode,
+                isShuffleEnabled = isShuffleEnabled,
+                isLiked = isLiked,
+                editMode = false,
+                onToggleLike = onToggleLike,
+                onPlayPause = onPlayPause,
+                onNext = onNext,
+                onPrev = onPrev,
+                onToggleRepeat = onToggleRepeat,
+                onToggleShuffle = onToggleShuffle,
+                onClose = onClose,
+                onSeek = onSeek,
+                onSeekDrag = onSeekDrag,
+                onOpenQueue = { showQueue = true },
+                onOpenLyrics = { showLyrics = true },
+                onOpenOptions = { showOptions = true },
+                onHoldPlay = { showCustomize = true }
+            )
+        } else Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
@@ -579,6 +613,15 @@ fun FullPlayerContent(
                     },
                 )
             }
+        }
+
+        if (showCustomize) {
+            PlayerCustomizeScreen(
+                song = song,
+                bitmap = bitmap,
+                glowColor = glowColor,
+                onClose = { showCustomize = false }
+            )
         }
     }
 }

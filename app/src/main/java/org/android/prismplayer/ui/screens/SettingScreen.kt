@@ -20,7 +20,9 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Memory
+import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.*
 import org.android.prismplayer.ui.components.CustomBottomSheet
 import androidx.compose.runtime.Composable
@@ -36,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -48,7 +51,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import org.android.prismplayer.ui.player.PlayerCustomizeScreen
 import org.android.prismplayer.ui.utils.AppTheme
+import org.android.prismplayer.ui.utils.PlayerStyle
+import org.android.prismplayer.ui.utils.PlayerStylePreferences
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 
@@ -65,6 +71,12 @@ fun SettingsScreen(
     val currentTheme by viewModel.currentTheme.collectAsState()
     val geminiApiKey by viewModel.geminiApiKey.collectAsState(initial = "")
 
+    val context = LocalContext.current
+    val stylePrefs = remember { PlayerStylePreferences.get(context) }
+    val playerConfig by stylePrefs.config.collectAsState()
+    var showPlayerCustomize by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     SettingsContent(
         isScanning = isScanning,
         currentTheme = currentTheme,
@@ -86,8 +98,19 @@ fun SettingsScreen(
             viewModel.setGeminiApiKey(key)
             onShowToast?.invoke("GEMINI API KEY SAVED")
         },
-        bottomPadding = bottomPadding
+        bottomPadding = bottomPadding,
+        playerStyle = playerConfig.style,
+        onPlayerStyleChanged = { style ->
+            stylePrefs.setStyle(style)
+            onShowToast?.invoke("PLAYER STYLE: ${style.name}")
+        },
+        onCustomizePlayer = { showPlayerCustomize = true }
     )
+
+    if (showPlayerCustomize) {
+        PlayerCustomizeScreen(onClose = { showPlayerCustomize = false })
+    }
+    }
 }
 
 
@@ -103,7 +126,10 @@ fun SettingsContent(
     onOpenEqualizer: () -> Unit,
     onReselectFolders: () -> Unit,
     onSaveGeminiKey: (String) -> Unit,
-    bottomPadding: Dp
+    bottomPadding: Dp,
+    playerStyle: PlayerStyle = PlayerStyle.DEFAULT,
+    onPlayerStyleChanged: (PlayerStyle) -> Unit = {},
+    onCustomizePlayer: () -> Unit = {}
 ) {
     var showGeminiDialog by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
@@ -149,6 +175,17 @@ fun SettingsContent(
             ConfigSectionHeader("APPEARANCE")
 
             ThemeSelector(currentTheme, onThemeChanged)
+
+            ConfigSectionHeader("PLAYER_STYLE")
+
+            PlayerStyleSelector(playerStyle, onPlayerStyleChanged)
+
+            ConfigItem(
+                icon = Icons.Outlined.Tune,
+                label = "CUSTOMIZE_PLAYER",
+                description = "DRAG_BOXES // ICONS // CORNERS // HOLD_PLAY_3S",
+                onClick = onCustomizePlayer
+            )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(0.05f), modifier = Modifier.padding(horizontal = 24.dp))
 
@@ -614,6 +651,37 @@ fun ThemeSelector(currentTheme: AppTheme, onThemeSelected: (AppTheme) -> Unit) {
             label = "OLED",
             isSelected = currentTheme == AppTheme.OLED_BLACK,
             onClick = { onThemeSelected(AppTheme.OLED_BLACK) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun PlayerStyleSelector(current: PlayerStyle, onSelect: (PlayerStyle) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Style,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(14.dp))
+        ThemeOption(
+            label = "DEFAULT",
+            isSelected = current == PlayerStyle.DEFAULT,
+            onClick = { onSelect(PlayerStyle.DEFAULT) },
+            modifier = Modifier.weight(1f)
+        )
+        ThemeOption(
+            label = "MODERN",
+            isSelected = current == PlayerStyle.MODERN,
+            onClick = { onSelect(PlayerStyle.MODERN) },
             modifier = Modifier.weight(1f)
         )
     }
